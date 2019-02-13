@@ -19,7 +19,7 @@ et.o: et.c
 timing.o: timing.c
 	gcc -c timing.c
 clean:
-	rm *.o et_crt ep_crt para_mm.c
+	rm *.o et_crt ep_crt para_mm
 
 depend:
 	makedepend ${IFLAGS} ep.c et.c timing.c
