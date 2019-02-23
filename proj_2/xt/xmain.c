@@ -1,3 +1,7 @@
+/* both foo() and bar() functions has xthread_yiled() function, so foo and 
+ * bar will output in inter leave way.
+ */
+
 #include <stdio.h>
 
 
