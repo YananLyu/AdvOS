@@ -62,10 +62,10 @@ int main() {
             return 5;
         }
 
-        if (fock() == 0) {  // Generate a CHILD
+        if (fork() == 0) {  // Generate a CHILD
             while ((len = recv(new_sock, buf, MAX, 0)) > 0) {
                 for (i=0; i < len; i++)  // change the case
-                    buf[i] = toupper[buf[i]];
+                    buf[i] = toupper(buf[i]);
                 send(new_sock, buf, len, 0);  //Write back to socket
                 if (buf[0] == '.') break;  // Are we done yet?
             }
