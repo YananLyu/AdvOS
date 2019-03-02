@@ -4,7 +4,6 @@
 
 #include <stdio.h>
 
-
 int xidfoo, xidbar;
 int x=0;
 
