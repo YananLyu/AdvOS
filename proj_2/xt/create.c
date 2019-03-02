@@ -25,10 +25,10 @@ void userret()
  */
 /* get the id of thread whose state is XFREE  */
 static int newxid()
-{ 
+{
     int i, xid;
     static int nextproc =0;
-  
+
     for(i=0; i<NPROC; i++) { /* find a free process entry */
         xid = nextproc;
         if((++nextproc) >= NPROC)
