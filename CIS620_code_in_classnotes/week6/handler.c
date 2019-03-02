@@ -23,7 +23,7 @@ void handler() {
     /* the following is what the handler should do to deal with the signal */
     printf("3 sec \n");  //  do what we want to do
     /* use following to instead of print()
-    xtab[curcid].xstate = XREADY;
+    xtab[curcid].xstate = XREADY;
     resched();
     */
 

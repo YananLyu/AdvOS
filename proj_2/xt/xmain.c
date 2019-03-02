@@ -2,7 +2,30 @@
  * bar will output in inter leave way.
  */
 
+#include <proc.h>
 #include <stdio.h>
+// add header files for signal
+#include <signal.h>
+#include <unistd.h>
+
+
+
+void handler() {
+   sigset_t set; // signal data structure set
+   sigemptyset(&set); /* initilaize the value of the set
+                       * the value of 32-bit blocked list => 0: 
+                       * don' block any types of signal.
+                       */
+   sigaddset(&set, SIGALRM);  // add SIGALRM to varibale set
+   
+   // Unblock signal SIGALRM as specified in varibale set
+   sigpromask(SIG_UNBLOCK, &set, 0);
+
+   xtab[currxid].xstate = XREADY;
+   resched();
+   
+                       
+}
 
 
 int xidfoo, xidbar;
@@ -28,6 +51,7 @@ int bar(int p, int q)
 
 xmain(int argc, char* argv[])
 {
+   signal(SIGALRM, handler);
    xidfoo = xthread_create(foo, 1, 7);
    xidbar = xthread_create(bar, 2, 32, 12);
    xthread_yield(xidfoo);
