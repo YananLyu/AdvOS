@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <proc.h>
 
+
 extern void xmain();  /* declare xmain function which is in another file */
 
 struct xentry xtab[10];  /* define global var xtab as an array, size 10 */
@@ -23,12 +24,11 @@ void main(int argc, char *argv[])
       xptr->xbase = xptr->xlimit + STKSIZE - sizeof(WORD);
       xptr->xstate = XFREE;
    }
-
+   
    /* the first thread runs user's xmain with id 0*/
    xidxmain = xthread_create(xmain, 2, argc, argv);
    xtab[xidxmain].xstate = XRUN;
+   
    ctxsw(m.xregs, xtab[xidxmain].xregs);
    /* never be here */
 }
-
-

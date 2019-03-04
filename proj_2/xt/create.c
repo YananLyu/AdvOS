@@ -74,7 +74,7 @@ int xthread_create(int *procaddr,int nargs, int args)
     saddr = (WORD *) xptr->xbase;  /* initialize the base address of stack
                                     * for the thread  */
 
-    /** Flowing statements are used to initilize the stack of the new thread **/
+    /** Following statements are used to initilize the stack of the new thread **/
     ap = (&args) + nargs;  /* ap: args pointer. put the argumets which 
                             * function foo(args)/bar(args) need to the stack
                             * of new thread 

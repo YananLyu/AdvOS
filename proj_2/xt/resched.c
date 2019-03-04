@@ -1,7 +1,9 @@
 /* resched.c  -  resched */
 #include <stdio.h>
 #include <proc.h>
+#include <signal.h>
 
+void handler();
 /*------------------------------------------------------------------------
  * resched  --  find a live thread to run
  *
@@ -9,6 +11,7 @@
  */
 void resched()
 {
+//    signal(SIGALRM, handler);  // signal
     register struct  xentry  *cptr;  /* pointer to old thread entry */
     register struct  xentry  *xptr;  /* pointer to new thread entry */
     int i,next;
@@ -30,7 +33,11 @@ void resched()
             xtab[next].xstate = XRUN;
             xptr = &xtab[next];
             currxid = next;
+            signal(SIGALRM, handler);
+            ualarm(20000, 0);  // interrupt every 20 ms after the new thread is running
+
             ctxsw(cptr->xregs,xptr->xregs);
+
             return;
         }
     }
@@ -39,3 +46,24 @@ void resched()
 }
 
 
+void handler() {
+    sigset_t set;  // signal data structure set
+    sigemptyset(&set);  /* initilaize the value of the set
+                         * the value of 32-bit blocked list => 0:
+                         * don' block any types of signal.
+                         */
+
+    sigaddset(&set, SIGALRM);  // add SIGALRM to variable set
+                               // set bit position of SIGALRM as 1
+
+    // Unblock signal SIGALRM as specified in variable set
+    if(sigprocmask(SIG_UNBLOCK, &set, 0) < 0) {
+       perror("sigprocmask");
+       exit(1);
+    }
+
+    printf("signal occurs, context switch\n");
+    // change the current thread's state from XRUN to XREADY
+    xtab[currxid].xstate = XREADY;
+    resched();
+}
