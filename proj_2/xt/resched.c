@@ -33,7 +33,7 @@ void resched()
             xtab[next].xstate = XRUN;
             xptr = &xtab[next];
             currxid = next;
-            signal(SIGALRM, handler);
+//            signal(SIGALRM, handler);
             ualarm(20000, 0);  // interrupt every 20 ms after the new thread is running
 
             ctxsw(cptr->xregs,xptr->xregs);
@@ -62,7 +62,6 @@ void handler() {
        exit(1);
     }
 
-    printf("signal occurs, context switch\n");
     // change the current thread's state from XRUN to XREADY
     xtab[currxid].xstate = XREADY;
     resched();

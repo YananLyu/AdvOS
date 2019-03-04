@@ -5,30 +5,32 @@
 #include <proc.h>
 #include <stdio.h>
 
-#define  INTERUPT_TIMES 5  // suppose the interrupt times is 5;
+#define  INTERUPT_TIMES 10  // suppose the interrupt times is 5;
 
 int xidfoo, xidbar, xidyanan, xidbinu;
 int x=0;
+typedef xthread_event_t ;
 
-void yanan() {
+#define WAITING_TIME 10000000
+void foo_part1() {
    
    int i = INTERUPT_TIMES;
    while(i > 0) {
       i--;
-      printf("Process Yanan, Round: %d\n", INTERUPT_TIMES - i);
-      int k = 30000000;  // context switch approximate 3 times.
+      printf("foo: %d\n", INTERUPT_TIMES - i);
+      int k = WAITING_TIME;  // context switch approximate 3 times.
       while(k) 
         k--;  // we maybe still in this loop when context switch back.
    }
 }
 
-void binu() {
+void bar_part1() {
    
    int i = INTERUPT_TIMES;
    while(i > 0) {
      i--;
-     printf("Process Binu, Round: %d\n", INTERUPT_TIMES - i);
-     int k = 30000000;
+     printf("bar: %d\n", INTERUPT_TIMES - i);
+     int k = WAITING_TIME;
      while(k)
         k--;
    }
@@ -52,14 +54,10 @@ int bar(int p, int q)
    }
 }
 
-xmain(int argc, char* argv[])
+xmain_part1(int argc, char* argv[])
 {
-//   xidfoo = xthread_create(foo, 1, 7);
-//   xidbar = xthread_create(bar, 2, 32, 12);
-
-//   xthread_yield(xidfoo);
-   xidyanan = xthread_create(yanan, 0, NULL);
-   xidbinu = xthread_create(binu, 0, NULL);
+   xidyanan = xthread_create(foo_part1, 0, NULL);
+   xidbinu = xthread_create(bar_part1, 0, NULL);
 //   xthread_yield(xidyanan);  
 /* if we add this function, xmain thread will yield to yanan thread,
  * xmain thread is still not finished. resched function will consider 
