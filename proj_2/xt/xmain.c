@@ -10,24 +10,61 @@
 
 struct xthread_event_t e;
 bool isEmpty = true;  // Q is empty or not;
-int qi = 0;  // track the Q[i]
-int cid = 0; // trac the current xid
+int qi = -1;  // track the Q[i]
+//int cid = 0; // trac the current xid
 
-void foo() {
+/* ------------------------>  test 1  <-----------------------------*/
+void foo_part2_test1() {
 	printf("foo begins\n");
 	xthread_set_ev(&e);
 	printf("foo Done\n");
 }
 
-xmain_part2(int argc, char* argv[]) {
-	xthread_init_ev(&e);  // the event is set NOT_OCCURRED
-	printf("xmain 1 \n");
-	int cid = xthread_create(foo, 0, NULL);
-	xthread_wait_ev(&e);  // main thread will wait
-	printf("main Done\n");
-	  
+void xmain_part2_test1() {
+    printf("Starting with xmain_part2_test1\n");
+    xthread_init_ev(&e);  // the event is set NOT_OCCURRED
+    
+    int usec = ualarm(0, 0);  // disable interrupt
+    xthread_create(foo_part2_test1, 0, NULL);
+    ualarm(usec, 0);  // enable interrupt
+    printf("********in xmain_part2: currxid %d\n", currxid);  //testing // don't need cid
+    xthread_wait_ev(&e);  // main thread will wait
+    
+    printf("main Done\n");
 }
-/*************    the bellow codes are for part 2    *****************/
+/* -----------------------------------------------------------------*/
+
+/* ------------------------>  test 2  <-----------------------------*/
+int k = 0;
+void foo_part2_test2() {
+	int id = k++;
+	printf("foo %d begins\n", id);
+//	xthread_set_ev(&e);
+	xthread_wait_ev(&e);  // thread will wait
+	printf("foo %d Done\n", id);
+}
+
+void xmain_part2_test2() {
+    printf("Starting with xmain_part2_test2\n");
+    xthread_init_ev(&e);  // the event is set NOT_OCCURRED
+
+    int usec = ualarm(0,0);  // disable the interrupt
+    xthread_create(foo_part2_test2, 0, NULL);
+    xthread_create(foo_part2_test2, 0, NULL);
+    xthread_create(foo_part2_test2, 0, NULL);
+    xthread_create(foo_part2_test2, 0, NULL);
+    xthread_create(foo_part2_test2, 0, NULL);
+    xthread_create(foo_part2_test2, 0, NULL);
+    ualarm(usec, 0);  // enbale the interrupt
+    
+//    printf("********in xmain_part2: currxid %d\n", currxid);  //testing // don't need cid
+    xthread_wait_ev(&e);  // main thread will wait
+
+    xthread_set_ev(&e);
+    printf("main Done\n");
+}
+/* -----------------------------------------------------------------*/
+/*************    the above codes are for part 2    *****************/
 
 
 /*************    the below code is for part 1    *****************/
