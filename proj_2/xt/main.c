@@ -5,6 +5,7 @@
 extern void handler();
 
 extern void xmain_part1();  /* declare xmain function which is in another file */
+extern void xmain_part2();  /* declare xmain function which is in another file */
 
 struct xentry xtab[10];  /* define global var xtab as an array, size 10 */
 int currxid = 0;  /* the first thread's PCB information/Xentry stored in
@@ -28,7 +29,8 @@ void main(int argc, char *argv[])
    }
    
    /* the first thread runs user's xmain with id 0*/
-   xidxmain = xthread_create(xmain_part1, 2, argc, argv);
+  // xidxmain = xthread_create(xmain_part1, 2, argc, argv);  // test xmain_part1
+   xidxmain = xthread_create(xmain_part2, 2, argc, argv);  // test xmain_part2
    xtab[xidxmain].xstate = XRUN;
    
    signal(SIGALRM, handler);  // it is better to place signal in main funciton.

@@ -5,13 +5,37 @@
 #include <proc.h>
 #include <stdio.h>
 
+
+/*************    the bellow codes are for part 2    *****************/
+
+struct xthread_event_t e;
+bool isEmpty = true;  // Q is empty or not;
+int qi = 0;  // track the Q[i]
+int cid = 0; // trac the current xid
+
+void foo() {
+	printf("foo begins\n");
+	xthread_set_ev(&e);
+	printf("foo Done\n");
+}
+
+xmain_part2(int argc, char* argv[]) {
+	xthread_init_ev(&e);  // the event is set NOT_OCCURRED
+	printf("xmain 1 \n");
+	int cid = xthread_create(foo, 0, NULL);
+	xthread_wait_ev(&e);  // main thread will wait
+	printf("main Done\n");
+	  
+}
+/*************    the bellow codes are for part 2    *****************/
+
+
+/*************    the below code is for part 1    *****************/
+
 #define  INTERUPT_TIMES 10  // suppose the interrupt times is 5;
+#define WAITING_TIME 30000000
+int xidfoo_part1, xidbar_part1;
 
-int xidfoo, xidbar, xidyanan, xidbinu;
-int x=0;
-typedef xthread_event_t ;
-
-#define WAITING_TIME 10000000
 void foo_part1() {
    
    int i = INTERUPT_TIMES;
@@ -36,28 +60,10 @@ void bar_part1() {
    }
 }
 
-int foo(int f)
-{
-   int i;
-   for(i=0;i<100;i++){
-      printf("This is foo %d, %d\n", f, x++);
-//      xthread_yield(xidbar);  // don't need it anymore
-   }
-}
-
-int bar(int p, int q)
-{
-   int j;
-   for(j=0;j<100;j++){
-      printf("This is bar %d, %d\n", p-q, x++);
-//      xthread_yield(xidfoo);  // don't need it anymore
-   }
-}
-
 xmain_part1(int argc, char* argv[])
 {
-   xidyanan = xthread_create(foo_part1, 0, NULL);
-   xidbinu = xthread_create(bar_part1, 0, NULL);
+   xidfoo_part1 = xthread_create(foo_part1, 0, NULL);
+   xidbar_part1 = xthread_create(bar_part1, 0, NULL);
 //   xthread_yield(xidyanan);  
 /* if we add this function, xmain thread will yield to yanan thread,
  * xmain thread is still not finished. resched function will consider 
@@ -66,3 +72,5 @@ xmain_part1(int argc, char* argv[])
  * the stack main build, it will go up, so yanan will be executed.
  */ 
 }
+
+/*************    the above codes are for part 1    *****************/
