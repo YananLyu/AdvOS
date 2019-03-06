@@ -1,5 +1,21 @@
-/* if there are no Queued processes, the event will be set as OCCURRED 
- * and the 
+/* 1) xmain thread call xthread_set_ev()
+ *    no process in Queue, so xmain will continue run and set e.occurred as OCCURRED(1)
+ *    SO xmain is first done
+ * 2) foo thread will run after xmain nature return.
+ *    Because e.occurred is OCCURRED(1) before calling xthread_wait_ev() 
+ *    the xthread_wait_ev() will set e.occurred as NOT_OCCURRED(0), and foo continue run.
+ *    So foo Done and nature return
+ * 3) oof thread will run after foo nature return
+ *    because e.occurred is NOT_OCCURRED(0) before calling xthread_wait_ev() 
+ *    So oof thead will be set as XEVENT, and resched() pick up next XREADY thread
+ *    Therefore, oof is not done and no nature return
+ * 4) oof1 and oof2 will run and inserted to Q,
+ *    like off, they are not Done and no nature return.
+ * 5) bar thread is picked up by resched() and will run
+ *    it print the Q[qi]'s state(oof), which is XEVENT.
+ *    Then call xthread_set_ev(), oof, oof1 and oof2 are in Queue, and e.occurred is NOT_OCCURRED,
+ *    so all threads in Q are set as XREADY 
+ * 6) Because the state of oof, oof1 and oof2 are XREADY now, so they will be Done and nature return
  */
 
 #include <proc.h>
@@ -26,11 +42,29 @@ void oof() {
 	printf("oof begins\n");
 
 	printf("oof-Before call xthread_wait_ev(&e) e.OCCURRED: %d\n", e.occurred);
-	xthread_wait_ev(&e);  // cause NOT_OCCURRED, so oof is inserted to Q
-			      // 
-	printf("oof-After call xthread_wait_ev(&e) e.OCCURRED: %d\n", e.occurred);
+	xthread_wait_ev(&e);  // because NOT_OCCURRED, so oof is inserted to Q
 	
 	printf("oof Done\n");
+}
+
+void oof1() {
+
+	printf("oof1 begins\n");
+
+	printf("oof1-Before call xthread_wait_ev(&e) e.OCCURRED: %d\n", e.occurred);
+	xthread_wait_ev(&e);  // because NOT_OCCURRED, so oof is inserted to Q
+	
+	printf("oof1 Done\n");
+}
+
+void oof2() {
+
+	printf("oof2 begins\n");
+
+	printf("oof2-Before call xthread_wait_ev(&e) e.OCCURRED: %d\n", e.occurred);
+	xthread_wait_ev(&e);  // because NOT_OCCURRED, so oof is inserted to Q
+	
+	printf("oof2 Done\n");
 }
 
 void bar() {
@@ -52,6 +86,8 @@ void xmain() {
     int usec = ualarm(0,0);  // disable the interrupt
     xthread_create(foo, 0, NULL);
     xthread_create(oof, 0, NULL);
+    xthread_create(oof1, 0, NULL);
+    xthread_create(oof2, 0, NULL);
     xthread_create(bar, 0, NULL);
     ualarm(usec, 0);  // enbale the interrupt
     

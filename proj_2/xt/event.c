@@ -24,7 +24,7 @@ void xthread_wait_ev(struct xthread_event_t * ep) {
 
 		resched();  // this thr will be back to ready state when someone call it
 		return;
-	} else {
+	} else {  // OCCURRED
 		ep->occurred = NOT_OCCURRED;
 	}
 
@@ -34,7 +34,9 @@ void xthread_wait_ev(struct xthread_event_t * ep) {
 void xthread_set_ev(struct xthread_event_t * ep) {
 	
 	if(isEmpty == false) {  // ep->Q is not empty
+		int remain = ualarm(0, 0); 
 		ep->occurred = NOT_OCCURRED;
+		qi--;
 		while(qi >= 0) {
 			xtab[ep->Q[qi]].xstate = XREADY;
 			ep->Q[qi] = -1;  // set Q[qi] from XEVENT to XREADY and remove the thr's id in Q
@@ -42,6 +44,7 @@ void xthread_set_ev(struct xthread_event_t * ep) {
 		}
 		isEmpty = true;
 		qi = 0;  // qi will be -1 after while loop, so revise it to 0;
+		remain = ualarm(0, 0); 
 	} else {  // if the Q is empty, the event will be set as OCCURRED
 		ep->occurred = OCCURRED;
 	}

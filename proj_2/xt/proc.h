@@ -43,6 +43,7 @@ extern int currxid;
 struct xthread_event_t {
 	bool occurred;
 	int Q[NPROC];
+	bool isEmpty;
 };
 
 extern struct xthread_event_t e;
