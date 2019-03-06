@@ -11,8 +11,10 @@
  */
 void userret()
 {
-   xtab[currxid].xstate = XFREE;  /* set the thread to be XFREE state, cause
+   int usec = ualarm(0, 0);
+   xtab[currxid].xstate = XFREE;  /* set the thread to be XFREE state, because
                                    * the thread have exited */
+   ualarm(usec, 0);
    printf("XT: Old threads never die; they just fade away. (id:%d)\n",currxid);
    /* find the next runnable thread to trun */
    resched();  /* reschedule next thread to use cpu */
