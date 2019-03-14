@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <proc.h>
+#include <signal.h>
+
+extern void handler();
 
 extern void xmain();  /* declare xmain function which is in another file */
 
@@ -20,15 +23,17 @@ void main(int argc, char *argv[])
       xptr = &xtab[i];
       xptr->xid = i;
       xptr->xlimit =  (WORD) malloc(STKSIZE);
-      xptr->xbase = xptr->xlimit + STKSIZE - sizeof(WORD);
+      xptr->xbase = xptr->xlimit + STKSIZE	 - sizeof(WORD);
       xptr->xstate = XFREE;
    }
-
+   
    /* the first thread runs user's xmain with id 0*/
-   xidxmain = xthread_create(xmain, 2, argc, argv);
+   xidxmain = xthread_create(xmain, 2, argc, argv);  // test xmain 
+
    xtab[xidxmain].xstate = XRUN;
+   
+   signal(SIGALRM, handler);  // it is better to place signal in main funciton.
+   currxid = xidxmain;
    ctxsw(m.xregs, xtab[xidxmain].xregs);
    /* never be here */
 }
-
-

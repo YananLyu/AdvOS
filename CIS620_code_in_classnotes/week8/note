@@ -1,0 +1,96 @@
+
+/* a little like fork()
+    signle Prog
+
+int tag = 123
+int mesg;
+if(myrank == 0) {
+    MPI_Send (&mesg,1, MPI_INT, 1, tag, MPI_COMM_WORLD);  // why do we need tag?
+}                // 1: size     1:dst rank
+else if (myrank == 1) {
+    MPI_Recv (&mesg, 1, MPI_INT, 0, tag, MPI_COMM_WORLD, &status);
+    printf (mesg);
+}
+
+
+GPU       <----------------------->   CPU
+Graphics Card
+many core                          multicore 
+Chopin 512 cores                    12-core
+
+GPU core differ CPU core
+GPU core is limited ALU function
+
+SIMD within a warp (e.g. 32 threads)
+Single Instruction Multiple Data
+
+CPU :  MIMD
+
+
+if{
+
+}
+else{
+
+}
+
+
+SM: Streaming Multiprocess
+
+chip:
+128 cores
+---------
+64k register file
+------------------
+shared memory
+
+GPU Card:
+SM1    SM2    SM3    SM 4
+----------------------------Interconnection Network
+device memory RAM
+----------------------------- PCI bus   memorycopy transfer data 
+                                        programmer need handle transfer data
+    |
+    |
+RAM   ->  CPU
+
+Nivida   UMA: Unified Memory Access
+provide dynamic page(migration)
+
+if data is not there --> page fault
+
+
+How to write a GPU  program?
+CUDA tool provide prog env
+warp: 32 threads   logical
+block: several warps   -> blockssize: 64 threads  <-->  2 warps
+                                      128               4 warps
+                                      256
+                                      512
+                                      1024   <----->   32 warps
+scheduler schedule a block
+
+
+when you try to write a program on GPU
+CUDA
+OPENCL    Intel AMD
+they are very similar
+
+__global__   : use GPU run it 
+
+__global__ void hello() {  // run on GPU
+    printf("hello %d\n", threadIdx.x);
+}
+
+gridsize: how many # of block
+blocksize: total # of threads
+e.g.   1  4  => 1*4  threads
+
+int main() {  // this is on CPU
+    hello <<< gridsize, blocksize >>> ();
+    cuda synchronize();  // try to wait this function finished
+}
+
+
+int tid = blockIdx.x * blockDimx + threadIdx.x;
+output[tid] = sqrt(input[tid)

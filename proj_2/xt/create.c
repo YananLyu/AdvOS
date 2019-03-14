@@ -11,8 +11,10 @@
  */
 void userret()
 {
-   xtab[currxid].xstate = XFREE;  /* set the thread to be XFREE state, cause
+   int usec = ualarm(0, 0);
+   xtab[currxid].xstate = XFREE;  /* set the thread to be XFREE state, because
                                    * the thread have exited */
+   ualarm(usec, 0);
    printf("XT: Old threads never die; they just fade away. (id:%d)\n",currxid);
    /* find the next runnable thread to trun */
    resched();  /* reschedule next thread to use cpu */
@@ -74,7 +76,7 @@ int xthread_create(int *procaddr,int nargs, int args)
     saddr = (WORD *) xptr->xbase;  /* initialize the base address of stack
                                     * for the thread  */
 
-    /** Flowing statements are used to initilize the stack of the new thread **/
+    /** Following statements are used to initilize the stack of the new thread **/
     ap = (&args) + nargs;  /* ap: args pointer. put the argumets which 
                             * function foo(args)/bar(args) need to the stack
                             * of new thread 

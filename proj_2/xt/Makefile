@@ -13,9 +13,9 @@
 	co -q $@
 
 HFILES = proc.h 
-CFILES = create.c yield.c resched.c main.c 
+CFILES = create.c yield.c resched.c main.c event.c 
 SFILES = ctxsw.s 
-OFILES = create.o ctxsw.o yield.o resched.o main.o 
+OFILES = create.o ctxsw.o yield.o resched.o main.o event.o
 XTLIB  = ./libxt.a
 APP_CFILES = xmain.c
 APP_OFILES = xmain.o

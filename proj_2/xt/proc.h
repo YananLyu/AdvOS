@@ -1,6 +1,7 @@
 /*    proc.h    */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef int WORD;  /* give a type of new name. So, WORD just like int */
 
@@ -14,6 +15,7 @@ typedef int WORD;  /* give a type of new name. So, WORD just like int */
 #define XFREE    0
 #define XREADY   1
 #define XRUN     2
+#define XEVENT   3
 
 /* This is similar to PCB(Process Control Blocks) which is designed
  * to save and restore the information for context switch */
@@ -37,3 +39,12 @@ extern int currxid;
  *                 4) lifetime: till the end of the execution of program
  *                 5) Scope: not bound by any function. they are everywhere in the program.
 */
+
+struct xthread_event_t {
+	bool occurred;
+	int Q[NPROC];
+    int qi;  // Q[qi], track the Q array
+	bool isEmpty;
+};
+
+extern struct xthread_event_t e;
