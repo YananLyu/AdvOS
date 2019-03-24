@@ -1,3 +1,3 @@
 # Advanced Operating System
 
-This repository includes **classnotes and projects** in Adv. OS course.
+This repository is the projects in Adv. OS course.
