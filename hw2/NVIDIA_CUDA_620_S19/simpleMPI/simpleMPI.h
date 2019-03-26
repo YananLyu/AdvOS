@@ -22,7 +22,7 @@
 // Forward declarations
 extern "C" {
     void initData(float *data, int dataSize);
-    void computeGPU(float *hostData, int blockSize, int gridSize);
+    void computeGPU(float *hostDataA, float *hostDataB, float *result, int blockSize, int gridSize);
     float sum(float *data, int size);
     void my_abort(int err);
 }

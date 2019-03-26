@@ -26,6 +26,7 @@
 
 // System includes
 #include <iostream>
+#include<unistd.h>
 
 using std::cout;
 using std::cerr;
@@ -61,23 +62,35 @@ int main(int argc, char *argv[])
     int gridSize = (dataSizePerNode + blockSize - 1) / blockSize;
 
     // Generate some random numbers on the root node (node 0)
-    float *dataRoot = NULL;
+    float *dataRootA = NULL;
+    float *dataRootB = NULL;  // TODO: new array
 
     if (commRank == 0)  // Are we the root node?
     {
         cout << "Running on " << commSize << " nodes" << endl;
-        dataRoot = new float[dataSizeTotal];
-        initData(dataRoot, dataSizeTotal);
+        dataRootA = new float[dataSizeTotal];
+	dataRootB = new float[dataSizeTotal]; // TODO
+        initData(dataRootA, dataSizeTotal); // TODO
+	initData(dataRootB, dataSizeTotal);
     }
 
     // Allocate a buffer on each node
-    float *dataNode = new float[dataSizePerNode];
+    float *dataNodeA = new float[dataSizePerNode];
+    float *dataNodeB = new float[dataSizePerNode]; // TODO
 
     // Dispatch a portion of the input data to each node
-    MPI_CHECK(MPI_Scatter(dataRoot,
+    MPI_CHECK(MPI_Scatter(dataRootA,
                           dataSizePerNode,
                           MPI_FLOAT,
-                          dataNode,
+                          dataNodeA,
+                          dataSizePerNode,
+                          MPI_FLOAT,
+                          0,
+                          MPI_COMM_WORLD));
+    MPI_CHECK(MPI_Scatter(dataRootB, // TODO
+                          dataSizePerNode,
+                          MPI_FLOAT,
+                          dataNodeB,
                           dataSizePerNode,
                           MPI_FLOAT,
                           0,
@@ -86,26 +99,34 @@ int main(int argc, char *argv[])
     if (commRank == 0)
     {
         // No need for root data any more
-        delete [] dataRoot;
+        delete [] dataRootA;
+	delete [] dataRootB;  //TODO
     }
 
     // On each node, run computation on GPU
-    computeGPU(dataNode, blockSize, gridSize);
-
+    float *resultNode = NULL;
+    computeGPU(dataNodeA, dataNodeB, resultNode, blockSize, gridSize);
+  
     // Reduction to the root node, computing the sum of output elements
-    float sumNode = sum(dataNode, dataSizePerNode);
-    float sumRoot;
+    float EucNode = sum(resultNode, dataSizePerNode);  // TODO
+    
+    float EucRoot;  // TODO
+   
+    char hostname[256];
+    gethostname(hostname, 256);
+    cout << "hostname: " << hostname << " local summation: " << EucNode << endl;
+    MPI_CHECK(MPI_Reduce(&EucNode, &EucRoot, 1, MPI_FLOAT, MPI_MAX, 0, MPI_COMM_WORLD));  //TODO
 
-    MPI_CHECK(MPI_Reduce(&sumNode, &sumRoot, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD));
-
-    if (commRank == 0)
+    delete [] dataNodeA;
+    delete [] dataNodeB;
+ /*   if (commRank == 0)
     {
-        float average = sumRoot / dataSizeTotal;
+        float average = (sumRootA + sumRootB) / dataSizeTotal;
         cout << "Average of square roots is: " << average << endl;
     }
-
+*/
     // Cleanup
-    delete [] dataNode;
+
     MPI_CHECK(MPI_Finalize());
 
     if (commRank == 0)
@@ -122,3 +143,4 @@ void my_abort(int err)
     cout << "Test FAILED\n";
     MPI_Abort(MPI_COMM_WORLD, err);
 }
+

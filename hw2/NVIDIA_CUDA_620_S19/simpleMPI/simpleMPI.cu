@@ -36,10 +36,10 @@ using std::endl;
 
 // Device code
 // Very simple GPU Kernel that computes square roots of input numbers
-__global__ void simpleMPIKernel(float *input, float *output)
+__global__ void simpleMPIKernel(float *inputA, float *inputB, float *output)  // TODO one more para
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    output[tid] = sqrt(input[tid]);
+    output[tid] = sqrt(inputA[tid] * inputA[tid] + inputB[tid] * inputB[tid]);
 }
 
 
@@ -54,28 +54,32 @@ void initData(float *data, int dataSize)
 
 // CUDA computation on each node
 // No MPI here, only CUDA
-void computeGPU(float *hostData, int blockSize, int gridSize)
+void computeGPU(float *hostDataA, float *hostDataB, float *result, int blockSize, int gridSize)
 {
     int dataSize = blockSize * gridSize;
 
     // Allocate data on GPU memory
-    float *deviceInputData = NULL;
-    CUDA_CHECK(cudaMalloc((void **)&deviceInputData, dataSize * sizeof(float)));
+    float *deviceInputDataA = NULL;
+    float *deviceInputDataB = NULL;  // TODO
+    CUDA_CHECK(cudaMalloc((void **)&deviceInputDataA, dataSize * sizeof(float)));
+    CUDA_CHECK(cudaMalloc((void **)&deviceInputDataB, dataSize * sizeof(float)));
 
     float *deviceOutputData = NULL;
     CUDA_CHECK(cudaMalloc((void **)&deviceOutputData, dataSize * sizeof(float)));
 
     // Copy to GPU memory
-    CUDA_CHECK(cudaMemcpy(deviceInputData, hostData, dataSize * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(deviceInputDataA, hostDataB, dataSize * sizeof(float), cudaMemcpyHostToDevice));  // TODO
 
     // Run kernel
-    simpleMPIKernel<<<gridSize, blockSize>>>(deviceInputData, deviceOutputData);
+    // TODO one more parameter 
+    simpleMPIKernel<<<gridSize, blockSize>>>(deviceInputDataA, deviceInputDataB, deviceOutputData);
 
     // Copy data back to CPU memory
-    CUDA_CHECK(cudaMemcpy(hostData, deviceOutputData, dataSize *sizeof(float), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(result, deviceOutputData, dataSize *sizeof(float), cudaMemcpyDeviceToHost));
 
     // Free GPU memory
-    CUDA_CHECK(cudaFree(deviceInputData));
+    CUDA_CHECK(cudaFree(deviceInputDataA));
+    CUDA_CHECK(cudaFree(deviceInputDataB));
     CUDA_CHECK(cudaFree(deviceOutputData));
 }
 
