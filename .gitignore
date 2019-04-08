@@ -1,0 +1,8 @@
+*.sh
+.settings/
+
+!*.txt
+*.class
+*.o
+a.out
+
