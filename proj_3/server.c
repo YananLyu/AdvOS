@@ -15,7 +15,7 @@
 
 #define UDP_PORT	35896   //3 + last 4 digits of ID
 #define MAX    		1024	// for TCP
-#define BUFMAX		1024	// for UDP
+#define BUFMAX		2048	// for UDP
 
 #define MSG "PUT BANK620 "
 
@@ -75,15 +75,13 @@ main() {
 
 	/* UDP */
 	int tcp_port = htons(serv_adr.sin_port);
-	char port[10];
-	sprintf(port, "%d", tcp_port);
-	strcat(message, port);
-	if(register_in_servicemap(serv_adr.sin_port) != 0) {	// TODO: parameter right?
+	if(register_in_servicemap(tcp_port) != 0) {	// TODO: parameter right?
 		close(orig_sock);
 		perror("Register ServiceMap error");
 		return -1;		
 	}
-
+	close(new_sock);  // TODO: delete it after test UDP successfully
+/*
 	do {
 		clnt_len = sizeof(clnt_adr);
 		// ACCEPT a connect
@@ -107,7 +105,7 @@ main() {
 		} else
 			close(new_sock);				// In PARENT process
 	} while(1);						// FOREVER
-
+*/
 	return 0;
 }
 
@@ -116,6 +114,12 @@ register_in_servicemap(int tcp_port) {	// TODO: tcp_port type?
 
 	int sk;
 	char buf[BUFMAX];
+
+	// message: PUT BANK620 port-num
+	char serv_port[10];
+	sprintf(serv_port, "%d", tcp_port);
+	strcpy(buf, MSG);
+	strcat(buf, serv_port);
 
 	struct sockaddr_in remote;
 	struct hostent *hp;		// hostent: this structure is used to keep info related to host
@@ -137,14 +141,24 @@ register_in_servicemap(int tcp_port) {	// TODO: tcp_port type?
 	/* setsockopt is required on Linux, but not on Solaris */
 	setsockopt(sk,SOL_SOCKET,SO_BROADCAST,(struct sockaddr *)&remote,sizeof(remote));
 
-	char
-	sendto(sk, MSG, strlen(MSG)+1, 0, (struct sockaddr *) &remote, sizeof(remote));	// Send the message to register
-
-	read(sk, buf, BUFMAX);	// Get the reply "OK" from servicemap
+	if ( sendto(sk, buf, strlen(buf)+1, 0, (struct sockaddr *) &remote, sizeof(remote)) == -1) {	// Send the message to register
+		perror("Sending Registration message ERROR!");
+		close(sk);
+		return -1;
+	}
+	// Get the reply "OK" from servicemap
+	struct sockaddr_in fromAddr;
+	if ( recvfrom(sk, buf, BUFMAX, 0, (struct sockaddr *)&fromAddr, sizeof(fromAddr)) == -1) {
+		perror("Failed to receive OK from servicemap");
+		close(sk);
+		return -1;
+	}
 
 	close(sk);	// close socket
-	if (buf == "OK")	// register successfully
+	if (strcmp(buf, "OK") == 0) {	// register successfully
+		printf("Registration OK from %s\n", inet_ntoa(fromAddr.sin_addr));
 		return 0;
+	}
 	else				// Falied to register in servicemap
 		return -1;
 }
