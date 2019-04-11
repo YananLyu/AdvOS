@@ -15,48 +15,13 @@
 
 #define UDP_PORT	35896   //3 + last 4 digits of ID
 #define MAX    		1024	// for TCP
-#define BUFMAX		2048	// for UDP
+#define BUFMAX		1024	// for UDP
 
 #define MSG "PUT BANK620 "
 
 static char buf[MAX];
 
-int
-regist_in_servicemap(int tcp_port) {	// TODO: tcp_port type?
-
-	int sk;
-	char buf[BUFMAX];
-
-	struct sockaddr_in remote;
-	struct hostent *hp;		// hostent: this structure is used to keep info related to host
-
-	/* Create an Internet domain datagram socket */
-	if ((sk = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		perror("generate error");
-		return -2;
-	}
-
-	remote.sin_family = AF_INET;	// Internet-based applications
-
-	// CSU Grail address: 137.148.204.40. So the broadcast address is 137.148.204.255
-	remote.sin_addr.s_addr = inet_addr("137.148.205.255");
-
-	// Set the wellknown port number: 3 + last 4 digits of ID
-	remote.sin_port = ntohs(UDP_PORT);
-
-	/* setsockopt is required on Linux, but not on Solaris */
-	setsockopt(sk,SOL_SOCKET,SO_BROADCAST,(struct sockaddr *)&remote,sizeof(remote));
-
-	sendto(sk, MSG, strlen(MSG)+1, 0, (struct sockaddr *) &remote, sizeof(remote));	// Send the message to register
-
-	read(sk, buf, BUFMAX);	// Get the reply "OK" from servicemap
-
-	close(sk);	// close socket
-	if (buf == "OK")	// register successfully
-		return 0;
-	else				// Falied to register in servicemap
-		return -1;
-}
+int register_in_servicemap(int tcp_port);
 
 // signal handler
 void signal_catcher(int the_sig) {
@@ -109,7 +74,11 @@ main() {
 	}
 
 	/* UDP */
-	if(regist_in_servicemap(serv_adr.sin_port) != 0) {	// TODO: parameter right?
+	int tcp_port = htons(serv_adr.sin_port);
+	char port[10];
+	sprintf(port, "%d", tcp_port);
+	strcat(message, port);
+	if(register_in_servicemap(serv_adr.sin_port) != 0) {	// TODO: parameter right?
 		close(orig_sock);
 		perror("Register ServiceMap error");
 		return -1;		
@@ -136,8 +105,46 @@ main() {
 			close(new_sock);
 			return 0;
 		} else
-			close(new_sock);						// In PARENT process
+			close(new_sock);				// In PARENT process
 	} while(1);						// FOREVER
 
 	return 0;
+}
+
+int
+register_in_servicemap(int tcp_port) {	// TODO: tcp_port type?
+
+	int sk;
+	char buf[BUFMAX];
+
+	struct sockaddr_in remote;
+	struct hostent *hp;		// hostent: this structure is used to keep info related to host
+
+	/* Create an Internet domain datagram socket */
+	if ((sk = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		perror("Generate error");
+		return -2;
+	}
+
+	remote.sin_family = AF_INET;	// Internet-based applications
+
+	// CSU Grail address: 137.148.204.40. So the broadcast address is 137.148.204.255
+	remote.sin_addr.s_addr = inet_addr("137.148.205.255");
+
+	// Set the wellknown port number: 3 + last 4 digits of ID
+	remote.sin_port = ntohs(UDP_PORT);
+
+	/* setsockopt is required on Linux, but not on Solaris */
+	setsockopt(sk,SOL_SOCKET,SO_BROADCAST,(struct sockaddr *)&remote,sizeof(remote));
+
+	char
+	sendto(sk, MSG, strlen(MSG)+1, 0, (struct sockaddr *) &remote, sizeof(remote));	// Send the message to register
+
+	read(sk, buf, BUFMAX);	// Get the reply "OK" from servicemap
+
+	close(sk);	// close socket
+	if (buf == "OK")	// register successfully
+		return 0;
+	else				// Falied to register in servicemap
+		return -1;
 }
