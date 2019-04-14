@@ -13,7 +13,7 @@
 #include <arpa/inet.h>		// structure in_addr.  ntohs() may be declared as function or macros
 #include <string.h>
 
-#define UDP_PORT	35896   //3 + last 4 digits of ID
+#define UDP_PORT	35639   //3 + last 4 digits of ID
 #define MAX    		1024	// for TCP
 #define BUFMAX		2048	// for UDP
 
@@ -21,7 +21,7 @@
 
 static char buf[MAX];
 
-int register_in_servicemap(int tcp_port);
+int register_in_servicemap(unsigned int tcp_port);
 
 // signal handler
 void signal_catcher(int the_sig) {
@@ -34,7 +34,7 @@ main() {
 	int		orig_sock,		// Original socket in server
 			new_sock;		// New socket from connect
 	socklen_t	clnt_len;		// Length of client address
-	struct sockaddr_in  clnt_adr, serv_adr; // client and server addresses
+	struct sockaddr_in  clnt_adr, serv_adr, my_adr; // client and server addresses
 	int		len, i;
 
 	if (signal(SIGCHLD, signal_catcher) == SIG_ERR) {
@@ -53,11 +53,25 @@ main() {
 
 	// Bind IP and Port
 	if (bind(orig_sock, (struct sockaddr *) &serv_adr, sizeof(serv_adr)) < 0) {
-		getsockname(orig_sock, (struct sockaddr *) &serv_adr, sizeof(serv_adr));
+
 		perror("Bind error");
-		printf("Server Port number is: %d", ntohs(serv_adr.sin_port));
 		close(orig_sock);		
 		return 3;
+	}
+
+	// Get my ip address and port
+	unsigned int tcp_port;
+	int slen = sizeof(serv_adr);
+	bzero(&my_adr, sizeof(my_adr));
+	getsockname(orig_sock, (struct sockaddr *) &my_adr, &slen);
+	tcp_port = ntohs(my_adr.sin_port);
+printf("Server Port number is: %d\n", tcp_port);  // TODO: del
+
+	/* UDP */
+	if( register_in_servicemap(tcp_port) != 0) {	// TODO: parameter right?
+		close(orig_sock);
+		perror("Register ServiceMap error");
+		return -1;		
 	}
 
 	/* Listen: converts an unconnected socket into a passive socket, 
@@ -73,14 +87,6 @@ main() {
 		return 4;
 	}
 
-	/* UDP */
-	int tcp_port = htons(serv_adr.sin_port);
-	if(register_in_servicemap(tcp_port) != 0) {	// TODO: parameter right?
-		close(orig_sock);
-		perror("Register ServiceMap error");
-		return -1;		
-	}
-	close(new_sock);  // TODO: delete it after test UDP successfully
 /*
 	do {
 		clnt_len = sizeof(clnt_adr);
@@ -110,7 +116,7 @@ main() {
 }
 
 int
-register_in_servicemap(int tcp_port) {	// TODO: tcp_port type?
+register_in_servicemap(unsigned int tcp_port) {
 
 	int sk;
 	char buf[BUFMAX];
@@ -133,7 +139,7 @@ register_in_servicemap(int tcp_port) {	// TODO: tcp_port type?
 	remote.sin_family = AF_INET;	// Internet-based applications
 
 	// CSU Grail address: 137.148.204.40. So the broadcast address is 137.148.204.255
-	remote.sin_addr.s_addr = inet_addr("137.148.205.255");
+	remote.sin_addr.s_addr = inet_addr("172.20.7.255"); // inet_addr("137.148.205.255");
 
 	// Set the wellknown port number: 3 + last 4 digits of ID
 	remote.sin_port = ntohs(UDP_PORT);
@@ -146,9 +152,11 @@ register_in_servicemap(int tcp_port) {	// TODO: tcp_port type?
 		close(sk);
 		return -1;
 	}
+
 	// Get the reply "OK" from servicemap
 	struct sockaddr_in fromAddr;
-	if ( recvfrom(sk, buf, BUFMAX, 0, (struct sockaddr *)&fromAddr, sizeof(fromAddr)) == -1) {
+	int len_fromAdr = sizeof(fromAddr);
+	if ( recvfrom(sk, buf, BUFMAX, 0, (struct sockaddr *)&fromAddr, &len_fromAdr) == -1) {
 		perror("Failed to receive OK from servicemap");
 		close(sk);
 		return -1;
@@ -158,7 +166,7 @@ register_in_servicemap(int tcp_port) {	// TODO: tcp_port type?
 	if (strcmp(buf, "OK") == 0) {	// register successfully
 		printf("Registration OK from %s\n", inet_ntoa(fromAddr.sin_addr));
 		return 0;
+	} else {
+		return -1; 	// Falied to register in servicemap
 	}
-	else				// Falied to register in servicemap
-		return -1;
 }
