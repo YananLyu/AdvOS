@@ -65,11 +65,8 @@ int main() {
             strcpy(ip_and_port[i], inet_ntoa(remote.sin_addr));
             strcat(ip_and_port[i], ":");
             strcat(ip_and_port[i], token);
-            
-            printf("name: %s\n", name[i]); // TODO: del
-
-            printf("ipport: %s\n", ip_and_port[i]); // TODO: del
             i++;
+            
             // register succeddfully, then reply OK to server.
             sendto(sk, MSG, strlen(MSG) + 1, 0, (struct sockaddr * ) & remote, sizeof(remote));
 

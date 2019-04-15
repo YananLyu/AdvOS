@@ -37,7 +37,6 @@ main( int argc, char *argv[] ) {
 	ip_addr = strtok(ip_port, ":");
 	port_num = strtok(NULL, ":");
 	printf("Service provided by %s at port %s\n", ip_addr, port_num);
-	free(ip_port);
 
 
 	/* ***  TCP: connect to the server  *** */
@@ -46,15 +45,18 @@ main( int argc, char *argv[] ) {
 	struct sockaddr_in
 					serv_adr;		// Internet addr of server
 	struct hostent 	*host;			// The host (server) info
-
-	serv_adr.sin_family = AF_INET;
+    
+    /* For IPv4*/
+    serv_adr.sin_family = AF_INET;
     serv_adr.sin_addr.s_addr = inet_addr(ip_addr);
-	serv_adr.sin_port = htons(atoi(port_num));    /* short, network byte order */
+	serv_adr.sin_port = htons(atoi(port_num));
 
 	if ( (orig_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		perror("generate error");
 		return 1;
 	}
+
+	free(ip_port);		// free the dynamic address
 
 	// CONNECT
 	if ( connect(orig_sock, (struct sockaddr *)&serv_adr, sizeof(serv_adr)) <0 ) {
@@ -64,13 +66,15 @@ main( int argc, char *argv[] ) {
 
 	do {		// Process
 		write(1, "> ", 2);
-		// FIXME: input
 		if ( (len=read(0, buf, MAX)) > 0) {
-			send(orig_sock, buf, len, 0);
-			if ( (len=recv(orig_sock, buf, len, 0)) >0 )
+			send(orig_sock, buf, len, 0);		// Send msg to server
+			memset(buf, '\0', sizeof(buf));
+			if ( (len=recv(orig_sock, buf, len, 0)) >0 )	{	// receive msg from server
 				write(1, buf, len);
+				memset(buf, '\0', sizeof(buf));
+			}
 		}
-	} while ( strcmp(buf, "quit") != 0 );
+	} while ( strcmp(buf, "quit\n") != 0 );
 	
 	close(orig_sock);
 
@@ -95,7 +99,7 @@ get_ip_and_port( ) {
 	remote.sin_family = AF_INET;		// Internet-based applications
 
 	// CSU Grail address: 137.148.204.40. So the broadcast address is 137.148.204.255
-	remote.sin_addr.s_addr = inet_addr("172.20.7.255"); // inet_addr("137.148.205.255");
+	remote.sin_addr.s_addr = inet_addr("192.168.0.255"); // inet_addr("137.148.205.255");
 
 	// Set the wellknown port number: 3 + last 4digits of ID
 	remote.sin_port = ntohs(UDP_PORT);
