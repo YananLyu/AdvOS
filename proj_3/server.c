@@ -144,9 +144,10 @@ main() {
 						strcat(rep_buf, tmp);
 						strcat(rep_buf, " ");
 						strcat(rep_buf, row.phone);
-printf("rep_buf: %s\n", rep_buf); //TODO
+						strcat(rep_buf, "\n");
+
 						int k = send(new_sock, rep_buf, strlen(rep_buf), 0);	// write back to client
-						printf("k:%s  repbuf:%s\n", k, rep_buf);  // TODO: del
+						printf("k:%d  repbuf:%s\n", k, rep_buf);  // TODO: del
 					}
 				} else if ( strcmp(token, "update") == 0 ) {	// UPDATE
 					char rep_buf[MAX];
@@ -166,7 +167,7 @@ printf("rep_buf: %s\n", rep_buf); //TODO
 						strcat(rep_buf, tmp);
 
 						int k = send(new_sock, rep_buf, strlen(rep_buf), 0);	// write back to client
-						printf("k:%s  repbuf:%s\n", k, rep_buf);  // TODO: del
+						printf("k:%d  repbuf:%s\n", k, rep_buf);  // TODO: del
 					}
 				} else {
 					char rep_buf[MAX];
@@ -209,7 +210,7 @@ register_in_servicemap(unsigned int tcp_port) {
 	remote.sin_family = AF_INET;	// Internet-based applications
 
 	// CSU Grail address: 137.148.204.40. So the broadcast address is 137.148.204.255
-	remote.sin_addr.s_addr = inet_addr("192.168.0.255"); // inet_addr("137.148.205.255");
+	remote.sin_addr.s_addr = inet_addr("137.148.205.255");
 
 	// Set the wellknown port number: 3 + last 4 digits of ID
 	remote.sin_port = ntohs(UDP_PORT);

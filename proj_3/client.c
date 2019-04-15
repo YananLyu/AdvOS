@@ -69,8 +69,8 @@ main( int argc, char *argv[] ) {
 		if ( (len=read(0, buf, MAX)) > 0) {
 			send(orig_sock, buf, len, 0);		// Send msg to server
 			memset(buf, '\0', sizeof(buf));
-			if ( (len=recv(orig_sock, buf, len, 0)) >0 )	{	// receive msg from server
-				write(1, buf, len);
+			if ( (len=recv(orig_sock, buf, MAX, 0)) >0 )	{	// receive msg from server
+				write(1, buf, MAX);
 				memset(buf, '\0', sizeof(buf));
 			}
 		}
@@ -99,7 +99,7 @@ get_ip_and_port( ) {
 	remote.sin_family = AF_INET;		// Internet-based applications
 
 	// CSU Grail address: 137.148.204.40. So the broadcast address is 137.148.204.255
-	remote.sin_addr.s_addr = inet_addr("192.168.0.255"); // inet_addr("137.148.205.255");
+	remote.sin_addr.s_addr = inet_addr("137.148.205.255");
 
 	// Set the wellknown port number: 3 + last 4digits of ID
 	remote.sin_port = ntohs(UDP_PORT);
