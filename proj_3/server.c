@@ -105,34 +105,25 @@ main() {
 			perror("accept error");
 			return 5;
 		}
-
 		if (fork() == 0) {  // Generate a CHILD to tackle task(query/update db19)
-			close(orig_sock);
+			
+			// get ip
 			char c_ip[16];
 			inet_ntop(AF_INET, &(clnt_adr.sin_addr), c_ip, 16);
-			
-			char buf[MAX];
-			while ( (len=recv(new_sock, buf, MAX,0)) > 0) {  // receive the msg
-				// if receive "quit", reply to client with "quit".
-				if ( strcmp(buf, "quit") ==0 ) {
-					send(new_sock, buf, len, 0);	// buf = "quit"
-					memset(buf, '\0', MAX);
-				}
 
+			uint32_t buf[2];
+			while ( (len=recv(new_sock, &buf[0], MAX,0)) > 0) {  // receive the msg
 				printf("Service Requested from %s\n", c_ip);
-
 				/* ***   tackle db   *** */
-				// get the first word query/update, return error for else word.
-				char * token;
-				char *rest = NULL;
-        		token = strtok(buf, " ");
 
-				if ( strcmp(token, "query") == 0 ) {  	// QUERY
+				if ( buf[0] == 500 ) {  	// QUERY
+					recv(new_sock, &buf[1], sizeof(uint32_t),0);  // recv the acctnum
 					char rep_buf[MAX];
 					struct record row;
-					if ( (query_db19(&row, 10000)) == -1 ) {	// Query Failed
+					if ( (query_db19(&row, ntohl(buf[1]))) == -1 ) {	// Query Failed
 						strcpy(rep_buf, "Query Failed: the record quired is not in db file\n");
 						send(new_sock, rep_buf, MAX, 0);
+						break;
 					} else {	// Query successfully
 						char tmp[sizeof(struct record)];
 						strcpy(rep_buf, row.name);
@@ -145,16 +136,18 @@ main() {
 						strcat(rep_buf, " ");
 						strcat(rep_buf, row.phone);
 						strcat(rep_buf, "\n");
-
-						int k = send(new_sock, rep_buf, strlen(rep_buf), 0);	// write back to client
-						printf("k:%d  repbuf:%s\n", k, rep_buf);  // TODO: del
 					}
-				} else if ( strcmp(token, "update") == 0 ) {	// UPDATE
+					int k = send(new_sock, rep_buf, strlen(rep_buf), 0);	// write back to client
+printf("k:%d  repbuf:%s\n", k, rep_buf);  // TODO: del
+				} else if ( buf[0] == 501 ) {	// UPDATE
+					recv(new_sock, &buf[1], sizeof(uint32_t),0);  // recv the acctnum
+					float val;
+					recv(new_sock, &val, sizeof(float),0);  // recv the acctnum
 					char rep_buf[MAX];
 					struct record row;
-					if ( (update_db19(&row, 11111, 8.2)) == -1 ) {	// Query Failed
+					if ( (update_db19(&row, buf[1], val)) == -1 ) {	// Query Failed
 						strcpy(rep_buf, "Update Failed: the record quired is not in db file\n");
-						send(new_sock, rep_buf, strlen(buf), 0);
+						send(new_sock, rep_buf, strlen(rep_buf), 0);
 					} else {	// Query successfully
 						char tmp[sizeof(struct record)];
 				
@@ -169,18 +162,18 @@ main() {
 						int k = send(new_sock, rep_buf, strlen(rep_buf), 0);	// write back to client
 						printf("k:%d  repbuf:%s\n", k, rep_buf);  // TODO: del
 					}
+				} else if ( buf[0] == 502) { // quit
+					close(new_sock);
 				} else {
 					char rep_buf[MAX];
 					strcpy(rep_buf, "USAGE:\n	query actnum\n	update acctnum amount\n");
 					send(new_sock, rep_buf, strlen(rep_buf), 0);
 				}
-
-				memset(buf, '\0', MAX);
-			}
+			}  // while
 			close(new_sock);
-			exit(0);
+			
 		} else
-			close(new_sock);				// In PARENT process
+			close(new_sock);
 	} while(1);						// FOREVER
 
 	return 0;
@@ -275,15 +268,18 @@ update_db19(struct record * row, int acctnum, float val) {
 	
 	lseek(fd, 0, SEEK_SET);		// JUST IN CASE
 
-	while( read(fd, &row, sizeof(struct record)) > 0 ) {
+	while( read(fd, &row, sizeof(struct record)) > 0 ) 
+	{
 		// if query successfully, add the val to the value
-		if (row->acctnum == acctnum) {	// query seccessfully
+		if (row->acctnum == acctnum)
+		 {	// query seccessfully
 			// move cfo to the matched record
 			lseek(fd, -sizeof(struct record), SEEK_CUR);
-			if( lockf(fd, F_LOCK, sizeof(struct record)) == -1 ) {
+			if( lockf(fd, F_LOCK, sizeof(struct record)) == -1 )
+			 {
 				perror("lockf Failed");
 				exit(1);
-			}
+       			 }
 			lseek(fd, sizeof(int)+sizeof(char) * 20, SEEK_CUR);
 			float new_val = row->value + val;
 	  		write(fd, &new_val, sizeof(float));

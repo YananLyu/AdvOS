@@ -67,7 +67,31 @@ main( int argc, char *argv[] ) {
 	do {		// Process
 		write(1, "> ", 2);
 		if ( (len=read(0, buf, MAX)) > 0) {
-			send(orig_sock, buf, len, 0);		// Send msg to server
+			char * token;
+			token = strtok(buf, " ");
+			if ( strcmp(token, "query") == 0 ) {
+				uint32_t cmd = htonl(500);
+				send(orig_sock, &cmd, sizeof(uint32_t), 0);		// Send 500
+
+				token = strtok(NULL, " ");
+				uint32_t acc = htonl(atoi(token));
+				send(orig_sock, &acc, sizeof(uint32_t), 0);		// Send acct
+			} else if ( strcmp(token, "update") == 0 ) {
+				uint32_t cmd = htonl(501);
+				send(orig_sock, &cmd, sizeof(uint32_t), 0);		// Send 501
+
+				token = strtok(NULL, " ");
+				uint32_t acc = htonl(atoi(token));
+				send(orig_sock, &acc, sizeof(uint32_t), 0);		// Send acct
+				
+				token = strtok(NULL, " ");
+				float amount = htonl(atoi(token));
+				send(orig_sock, &amount, sizeof(float), 0);		// Send amount
+			} else {
+				uint32_t cmd = htonl(502);
+				send(orig_sock, &cmd, sizeof(uint32_t), 0);		// Send 502
+			}
+
 			memset(buf, '\0', sizeof(buf));
 			if ( (len=recv(orig_sock, buf, MAX, 0)) >0 )	{	// receive msg from server
 				write(1, buf, MAX);
