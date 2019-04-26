@@ -28,6 +28,12 @@ struct record {
 	int		age;
 };
 
+struct instruction {
+	uint32_t 	cmd;	// query or update
+	uint32_t	acctnum;
+	float		amount;
+};
+
 int register_in_servicemap(unsigned int tcp_port);
 int query_db19(struct record * row, int acctnum);
 int update_db19(struct record * row, int acctnum, float val);
@@ -111,12 +117,26 @@ main() {
 			char c_ip[16];
 			inet_ntop(AF_INET, &(clnt_adr.sin_addr), c_ip, 16);
 
-			uint32_t buf[2];
 			while ( (len=recv(new_sock, &buf[0], MAX,0)) > 0) {  // receive the msg
 				printf("Service Requested from %s\n", c_ip);
 				/* ***   tackle db   *** */
-
-				if ( buf[0] == 500 ) {  	// QUERY
+				uint32_t cmd = ntohl(buf[0]);
+				if ( cmd == 500 ) {  	// QUERY
+			while ( (len=recv(new_sock, &buf[0], MAX,0)) > 0) {  // receive the msg
+				printf("Service Requested from %s\n", c_ip);
+				/* ***   tackle db   *** */
+				uint32_t cmd = ntohl(buf[0]);
+				if ( cmd == 500 ) {  	// QUERY
+			while ( (len=recv(new_sock, &buf[0], MAX,0)) > 0) {  // receive the msg
+				printf("Service Requested from %s\n", c_ip);
+				/* ***   tackle db   *** */
+				uint32_t cmd = ntohl(buf[0]);
+				if ( cmd == 500 ) {  	// QUERY
+			while ( (len=recv(new_sock, &buf[0], MAX,0)) > 0) {  // receive the msg
+				printf("Service Requested from %s\n", c_ip);
+				/* ***   tackle db   *** */
+				uint32_t cmd = ntohl(buf[0]);
+				if ( cmd == 500 ) {  	// QUERY
 					recv(new_sock, &buf[1], sizeof(uint32_t),0);  // recv the acctnum
 					char rep_buf[MAX];
 					struct record row;
@@ -126,6 +146,7 @@ main() {
 						break;
 					} else {	// Query successfully
 						char tmp[sizeof(struct record)];
+						memset(rep_buf, '\0', MAX);
 						strcpy(rep_buf, row.name);
 						strcat(rep_buf, " ");
 						sprintf(tmp, "%d", row.acctnum);
@@ -135,17 +156,16 @@ main() {
 						strcat(rep_buf, tmp);
 						strcat(rep_buf, " ");
 						strcat(rep_buf, row.phone);
-						strcat(rep_buf, "\n");
 					}
-					int k = send(new_sock, rep_buf, strlen(rep_buf), 0);	// write back to client
-printf("k:%d  repbuf:%s\n", k, rep_buf);  // TODO: del
-				} else if ( buf[0] == 501 ) {	// UPDATE
+					send(new_sock, rep_buf, strlen(rep_buf), 0);	// write back to client
+					
+				} else if ( cmd == 501 ) {	// UPDATE
 					recv(new_sock, &buf[1], sizeof(uint32_t),0);  // recv the acctnum
 					float val;
 					recv(new_sock, &val, sizeof(float),0);  // recv the acctnum
 					char rep_buf[MAX];
 					struct record row;
-					if ( (update_db19(&row, buf[1], val)) == -1 ) {	// Query Failed
+					if ( (update_db19(&row, buf[1], val)) == -1 ) {	//Update Failed
 						strcpy(rep_buf, "Update Failed: the record quired is not in db file\n");
 						send(new_sock, rep_buf, strlen(rep_buf), 0);
 					} else {	// Query successfully
@@ -162,7 +182,7 @@ printf("k:%d  repbuf:%s\n", k, rep_buf);  // TODO: del
 						int k = send(new_sock, rep_buf, strlen(rep_buf), 0);	// write back to client
 						printf("k:%d  repbuf:%s\n", k, rep_buf);  // TODO: del
 					}
-				} else if ( buf[0] == 502) { // quit
+				} else if ( cmd == 502) { // quit
 					close(new_sock);
 				} else {
 					char rep_buf[MAX];
@@ -268,29 +288,26 @@ update_db19(struct record * row, int acctnum, float val) {
 	
 	lseek(fd, 0, SEEK_SET);		// JUST IN CASE
 
-	while( read(fd, &row, sizeof(struct record)) > 0 ) 
-	{
+	while( read(fd, &row, sizeof(struct record)) > 0 ) {
 		// if query successfully, add the val to the value
-		if (row->acctnum == acctnum)
-		 {	// query seccessfully
+		if (row->acctnum == acctnum){	// query seccessfully
 			// move cfo to the matched record
 			lseek(fd, -sizeof(struct record), SEEK_CUR);
-			if( lockf(fd, F_LOCK, sizeof(struct record)) == -1 )
-			 {
+			if( lockf(fd, F_LOCK, sizeof(struct record)) == -1 ) {
 				perror("lockf Failed");
 				exit(1);
-       			 }
+			}		
 			lseek(fd, sizeof(int)+sizeof(char) * 20, SEEK_CUR);
 			float new_val = row->value + val;
 	  		write(fd, &new_val, sizeof(float));
-      		lseek(fd, -(sizeof(int)+sizeof(char) * 20+sizeof(float)), SEEK_CUR);
-      		read(fd, row, sizeof(struct record));	// read the new data for sending
+      			lseek(fd, -(sizeof(int)+sizeof(char) * 20+sizeof(float)), SEEK_CUR);
+      			read(fd, row, sizeof(struct record));	// read the new data for sending
 			lockf(fd, F_ULOCK, -sizeof(struct record));
 			
 			close(fd);						// Close the opened file
 			return 1;
 		}
 	}
-	return -1;
-
+	close(fd);
+	return -1;	// record don't exists
 }

@@ -95,6 +95,7 @@ main( int argc, char *argv[] ) {
 			memset(buf, '\0', sizeof(buf));
 			if ( (len=recv(orig_sock, buf, MAX, 0)) >0 )	{	// receive msg from server
 				write(1, buf, MAX);
+				write(1, "\n", strlen("\n"));
 				memset(buf, '\0', sizeof(buf));
 			}
 		}

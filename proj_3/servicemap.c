@@ -36,14 +36,13 @@ int main() {
     local.sin_family = AF_INET; /* Define the socket domain */
     local.sin_addr.s_addr = INADDR_ANY; /* Wildcard mach. addr */
     local.sin_port = ntohs(UDP_PORT); /* Let the system assign a port */
-    printf("PORT: %d\n", ntohs(local.sin_port));
+
     if (bind(sk, (struct sockaddr * ) & local, sizeof(local)) < 0) {
         printf("bind fails!\n");
         exit(1);
     }
 
     //getsockname(sk,(struct sockaddr *)&local,&len); /* Get the port number assigned */
-    printf("socket has port %d\n", htons(local.sin_port)); /* Publish the number */
 
 
     /* Read from the socket */
