@@ -1,0 +1,7 @@
+{
+    "workbench.sideBar.location": "right",
+    "files.associations": {
+        "math.h": "c",
+        "stdio.h": "c"
+    }
+}
