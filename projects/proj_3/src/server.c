@@ -28,6 +28,12 @@ struct record {
 	int	age;
 };
 
+struct msg501 {
+	uint32_t cmd;
+	uint32_t acc;
+	float amount;
+};
+
 int register_in_servicemap(unsigned int tcp_port);
 int query_db19(struct record * row, int acctnum);
 int update_db19(struct record * row, int acctnum, float val);
@@ -94,35 +100,36 @@ main() {
 		perror("lesten error");
 		return 4;
 	}
+	
+	clnt_len = sizeof(clnt_adr);
+	// ACCEPT a connect
+	if ((new_sock = accept(orig_sock, 
+		(struct sockaddr *) &clnt_adr,
+		&clnt_len)) < 0) {
+		close(orig_sock);
+		perror("accept error");
+		return 5;
+	}
 
 	do {
-		clnt_len = sizeof(clnt_adr);
-		// ACCEPT a connect
-		if ((new_sock = accept(orig_sock, 
-			(struct sockaddr *) &clnt_adr,
-			&clnt_len)) < 0) {
-			close(orig_sock);
-			perror("accept error");
-			return 5;
-		}
-		if (fork() == 0) {  // Generate a CHILD to tackle task(query/update db19)
-			
-			// get ip
-			char c_ip[16];
-			inet_ntop(AF_INET, &(clnt_adr.sin_addr), c_ip, 16);
+		// get ip
+		char c_ip[16];
+		inet_ntop(AF_INET, &(clnt_adr.sin_addr), c_ip, 16);
 
-			uint32_t buf[2];
-			while ( (len=recv(new_sock, &buf[0], MAX,0)) > 0) {  // receive the msg
-				printf("Service Requested from %s\n", c_ip);
+		struct msg501 buf;
+		if (len=recv(new_sock, &buf, MAX,0) > 0) {  // receive the msg
+			printf("Service Requested from %s\n", c_ip);
+			if (fork() == 0) {  // Generate a CHILD to tackle task(query/update db19)
 				/* ***   tackle db   *** */
-
-				if ( buf[0] == 500 ) {  	// QUERY
-					recv(new_sock, &buf[1], sizeof(uint32_t),0);  // recv the acctnum
+				uint32_t cmd = ntohl(buf.cmd);	// change it from network order to host order
+				if ( cmd == 500 ) {  	// QUERY
 					char rep_buf[MAX];
+					memset(rep_buf, '\0', sizeof(rep_buf));
 					struct record row;
-					if ( (query_db19(&row, ntohl(buf[1]))) == -1 ) {	// Query Failed
-						strcpy(rep_buf, "Query Failed: the record quired is not in db file\n");
+					if ( (query_db19(&row, ntohl(buf.acc))) == -1 ) {	// Query Failed
+						strcpy(rep_buf, "Query Failed: the record you want to query is not in db file\n");
 						send(new_sock, rep_buf, MAX, 0);
+						//close(new_sock);
 						break;
 					} else {	// Query successfully
 						char tmp[sizeof(struct record)];
@@ -138,16 +145,18 @@ main() {
 						strcat(rep_buf, "\n");
 					}
 					int k = send(new_sock, rep_buf, strlen(rep_buf), 0);	// write back to client
-printf("k:%d  repbuf:%s\n", k, rep_buf);  // TODO: del
-				} else if ( buf[0] == 501 ) {	// UPDATE
-					recv(new_sock, &buf[1], sizeof(uint32_t),0);  // recv the acctnum
-					float val;
-					recv(new_sock, &val, sizeof(float),0);  // recv the acctnum
+					//close(new_sock);
+					sleep(1);
+					exit(0);
+				} else if ( cmd == 501 ) {	// UPDATE
+
 					char rep_buf[MAX];
+					memset(rep_buf, '\0', sizeof(rep_buf));
 					struct record row;
-					if ( (update_db19(&row, buf[1], val)) == -1 ) {	// Query Failed
+					if ( (update_db19(&row, ntohl(buf.acc), ntohl(buf.amount))) == -1 ) {	// Query Failed
 						strcpy(rep_buf, "Update Failed: the record quired is not in db file\n");
 						send(new_sock, rep_buf, strlen(rep_buf), 0);
+						//close(new_sock);
 					} else {	// Query successfully
 						char tmp[sizeof(struct record)];
 				
@@ -160,18 +169,12 @@ printf("k:%d  repbuf:%s\n", k, rep_buf);  // TODO: del
 						strcat(rep_buf, tmp);
 
 						int k = send(new_sock, rep_buf, strlen(rep_buf), 0);	// write back to client
-						printf("k:%d  repbuf:%s\n", k, rep_buf);  // TODO: del
+						//close(new_sock);
 					}
-				} else if ( buf[0] == 502) { // quit
-					close(new_sock);
-				} else {
-					char rep_buf[MAX];
-					strcpy(rep_buf, "USAGE:\n	query actnum\n	update acctnum amount\n");
-					send(new_sock, rep_buf, strlen(rep_buf), 0);
-				}
-			}  // while
-			close(new_sock);
-			
+				} 
+				exit(0);
+			}
+					
 		} else
 			close(new_sock);
 	} while(1);						// FOREVER
@@ -203,7 +206,7 @@ register_in_servicemap(unsigned int tcp_port) {
 	remote.sin_family = AF_INET;	// Internet-based applications
 
 	// CSU Grail address: 137.148.204.40. So the broadcast address is 137.148.204.255
-	remote.sin_addr.s_addr = inet_addr("137.148.205.255");
+	remote.sin_addr.s_addr = inet_addr("192.168.0.255");
 
 	// Set the wellknown port number: 3 + last 4 digits of ID
 	remote.sin_port = ntohs(UDP_PORT);
@@ -244,6 +247,7 @@ int query_db19(struct record * row, int acctnum) {
 		exit(1);
 	}
 
+	lseek(fd, 0, SEEK_SET);		// JUST IN CASE
 	while( read(fd, row, sizeof(struct record)) > 0 ) {
 		// if query successfully, return the info string 
 		if (row->acctnum == acctnum) {	
@@ -268,26 +272,28 @@ update_db19(struct record * row, int acctnum, float val) {
 	
 	lseek(fd, 0, SEEK_SET);		// JUST IN CASE
 
-	while( read(fd, &row, sizeof(struct record)) > 0 ) 
-	{
+	while( read(fd, row, sizeof(struct record)) > 0 ) {
 		// if query successfully, add the val to the value
-		if (row->acctnum == acctnum)
-		 {	// query seccessfully
+
+		if (row->acctnum == acctnum) {	// query seccessfully
 			// move cfo to the matched record
 			lseek(fd, -sizeof(struct record), SEEK_CUR);
-			if( lockf(fd, F_LOCK, sizeof(struct record)) == -1 )
-			 {
+			if( lockf(fd, F_LOCK, sizeof(struct record)) == -1 ) {
 				perror("lockf Failed");
 				exit(1);
-       			 }
-			lseek(fd, sizeof(int)+sizeof(char) * 20, SEEK_CUR);
+       		}
+
 			float new_val = row->value + val;
+			lseek(fd, sizeof(int)+sizeof(char) * 20, SEEK_CUR);
 	  		write(fd, &new_val, sizeof(float));
-      		lseek(fd, -(sizeof(int)+sizeof(char) * 20+sizeof(float)), SEEK_CUR);
+
+      		lseek(fd, -(sizeof(int) + sizeof(char) * 20 + sizeof(float)), SEEK_CUR);
       		read(fd, row, sizeof(struct record));	// read the new data for sending
+
 			lockf(fd, F_ULOCK, -sizeof(struct record));
 			
 			close(fd);						// Close the opened file
+
 			return 1;
 		}
 	}

@@ -19,7 +19,18 @@
 #define MAX    		1024
 #define BUFMAX  	1024              
 
-static char buf[MAX]; 
+static char buf[MAX];
+
+struct msg500 {
+	uint32_t cmd;
+	uint32_t acc;
+};
+
+struct msg501 {
+	uint32_t cmd;
+	uint32_t acc;
+	float amount;
+};
 
 char * get_ip_and_port( );
 
@@ -57,7 +68,7 @@ main( int argc, char *argv[] ) {
 	}
 
 	free(ip_port);		// free the dynamic address
-
+		
 	// CONNECT
 	if ( connect(orig_sock, (struct sockaddr *)&serv_adr, sizeof(serv_adr)) <0 ) {
 		perror("connect error");
@@ -66,30 +77,35 @@ main( int argc, char *argv[] ) {
 
 	do {		// Process
 		write(1, "> ", 2);
+		memset(buf, '\0', sizeof(buf));
 		if ( (len=read(0, buf, MAX)) > 0) {
+			
+			if ( strcmp(buf, "quit\n") == 0 ) {	// quit
+				exit(0);
+			}
+
 			char * token;
 			token = strtok(buf, " ");
 			if ( strcmp(token, "query") == 0 ) {
-				uint32_t cmd = htonl(500);
-				send(orig_sock, &cmd, sizeof(uint32_t), 0);		// Send 500
-
-				token = strtok(NULL, " ");
-				uint32_t acc = htonl(atoi(token));
-				send(orig_sock, &acc, sizeof(uint32_t), 0);		// Send acct
+				token = strtok(NULL, " ");	// get acc
+				struct msg500 message500;
+				message500.cmd = htonl(500);
+				message500.acc = htonl(atoi(token));
+				send(orig_sock, &message500, sizeof(struct msg500), 0);		// Send 500 acct
 			} else if ( strcmp(token, "update") == 0 ) {
-				uint32_t cmd = htonl(501);
-				send(orig_sock, &cmd, sizeof(uint32_t), 0);		// Send 501
+				struct msg501 message501;
+				message501.cmd = htonl(501);
 
 				token = strtok(NULL, " ");
-				uint32_t acc = htonl(atoi(token));
-				send(orig_sock, &acc, sizeof(uint32_t), 0);		// Send acct
+				message501.acc = htonl(atoi(token));
 				
 				token = strtok(NULL, " ");
-				float amount = htonl(atoi(token));
-				send(orig_sock, &amount, sizeof(float), 0);		// Send amount
+				message501.amount = htonl(atoi(token));
+
+				send(orig_sock, &message501, sizeof(struct msg501), 0);		// Send 501, acct, amount
 			} else {
-				uint32_t cmd = htonl(502);
-				send(orig_sock, &cmd, sizeof(uint32_t), 0);		// Send 502
+				printf("USAGE:\n  query actnum\n  update acctnum amount\n  quit\n");
+				continue;
 			}
 
 			memset(buf, '\0', sizeof(buf));
@@ -99,7 +115,7 @@ main( int argc, char *argv[] ) {
 				memset(buf, '\0', sizeof(buf));
 			}
 		}
-	} while ( strcmp(buf, "quit\n") != 0 );
+	} while ( 1 );
 	
 	close(orig_sock);
 
@@ -124,7 +140,7 @@ get_ip_and_port( ) {
 	remote.sin_family = AF_INET;		// Internet-based applications
 
 	// CSU Grail address: 137.148.204.40. So the broadcast address is 137.148.204.255
-	remote.sin_addr.s_addr = inet_addr("137.148.205.255");
+	remote.sin_addr.s_addr = inet_addr("192.168.0.255");
 
 	// Set the wellknown port number: 3 + last 4digits of ID
 	remote.sin_port = ntohs(UDP_PORT);
