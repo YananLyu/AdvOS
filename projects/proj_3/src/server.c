@@ -206,7 +206,7 @@ register_in_servicemap(unsigned int tcp_port) {
 	remote.sin_family = AF_INET;	// Internet-based applications
 
 	// CSU Grail address: 137.148.204.40. So the broadcast address is 137.148.204.255
-	remote.sin_addr.s_addr = inet_addr("192.168.0.255");
+	remote.sin_addr.s_addr = inet_addr("137.148.255.255");
 
 	// Set the wellknown port number: 3 + last 4 digits of ID
 	remote.sin_port = ntohs(UDP_PORT);
